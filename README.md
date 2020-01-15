@@ -1,5 +1,5 @@
 # Design and Implementation of Automation Mechanisms for RESTful Web Services using Model Driven Engineering
-Online material for PhD dissertation of Christoforos Zolotas titled "Design and Development of Automation Mechanisms for RESTful Web Services using Model Driven Engineering". Folder contents:
+Online material for doctoral dissertation of Christoforos Zolotas titled "Design and Development of Automation Mechanisms for RESTful Web Services using Model Driven Engineering". Folder contents:
 
 *Automation Engine Eclipse Plugin*: The full code of the dissertation's accompanying Automation Engine in the form of an Eclipse Plugin.
 
