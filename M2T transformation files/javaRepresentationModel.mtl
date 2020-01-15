@@ -1,0 +1,205 @@
+[comment encoding = UTF-8 /]
+[module javaRepresentationModel('platform:/plugin/eu.scasefp7.eclipse.mde.m2m/Metamodels/AnnotationLayerStack.ecore', 'platform:/plugin/eu.scasefp7.eclipse.mde.m2m/Metamodels/AuthenticationPSMMetamodel.ecore', 'platform:/plugin/eu.scasefp7.eclipse.mde.m2m/Metamodels/PSMMetamodel.ecore' , 'platform:/plugin/eu.scasefp7.eclipse.mde.m2m/Metamodels/DesignPatternsLayerPSMMetamodel.ecore')]
+
+[template public javaRepresentationModel(anAnnotationStack : AnnotationStack)]
+[comment something is wrong HERE /]
+[for (jRModel : JavaResourceModel | anAnnotationStack.hasCorePSM.hasJavaRModel)]
+[comment That must be done for those implied in DesingPatternsLayerPSM.xmi getJavaRepresentations().annotatesJavaResourceModel [if (anAnnotationStack.getHasJavaRepresentation().annotatesJavaResourceModel.name.toString().contains(jRModel.name.toString()))/]
+[if (anAnnotationStack.getJavaRepresentableResources().annotatesJavaResourceModel -> asSet() -> includes(jRModel))]
+
+[file (anAnnotationStack.hasCorePSM.name + '/src/main/java/eu/fp7/scase/' + anAnnotationStack.hasCorePSM.name.toLowerCase() + '/' + jRModel.parentName + '/' + jRModel.name + 'Representation.java', false, 'UTF-8')]
+/*
+ * ARISTOSTLE UNIVERSITY OF THESSALONIKI
+ * Copyright (C) 2015
+ * Aristotle University of Thessaloniki
+ * Department of Electrical & Computer Engineering
+ * Division of Electronics & Computer Engineering
+ * Intelligent Systems & Software Engineering Lab
+ *
+ * Project             : [anAnnotationStack.hasCorePSM.name/]
+ * WorkFile            : 
+ * Compiler            : 
+ * File Description    : 
+ * Document Description: 
+* Related Documents	   : 
+* Note				   : 
+* Programmer		   : RESTful MDE Engine created by Christoforos Zolotas / Design patterns implementations created by Dontsios Dimitrios
+* Contact			   : christopherzolotas@issel.ee.auth.gr / dontsios@gmail.com
+*/
+
+package eu.fp7.scase.[anAnnotationStack.hasCorePSM.name.toLowerCase()/].[jRModel.parentName/];
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.FetchType;
+import javax.persistence.GeneratedValue;
+import javax.persistence.Id;
+import javax.persistence.ManyToOne;
+import javax.persistence.JoinColumn;
+import javax.persistence.OneToMany;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+import javax.persistence.Table;
+import javax.persistence.Transient;
+
+import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlTransient;
+
+import org.hibernate.Session;
+import eu.fp7.scase.[anAnnotationStack.hasCorePSM.name.toLower()/].utilities.HypermediaLink;
+[for (jRRModel : JavaResourceModel | jRModel.hasRelatedJavaRMManager.hasRelatedJavaRModel)]
+	[if (jRRModel <> jRModel)]
+import eu.fp7.scase.[anAnnotationStack.hasCorePSM.name.toLower()/].[jRRModel.parentName/].[jRRModel.name/];
+	[/if]
+[/for]
+
+[for (jPRModel : JavaResourceModel | anAnnotationStack.hasCorePSM.hasJavaRModel)]
+	[if (jPRModel.hasRelatedJavaRMManager.hasRelatedJavaRModel->includes(jRModel) and jPRModel <> jRModel)]
+	import eu.fp7.scase.[anAnnotationStack.hasCorePSM.name.toLower()/].[jPRModel.parentName/].[jPRModel.name/];
+	[/if]
+[/for]
+
+@XmlRootElement
+public class [jRModel.name/]Representation{
+
+	/* There follows a list with the properties that model the account resource, as prescribed in the service CIM*/
+		private String representationName; // account_propertyi_propertyj_propertyk used as query parameter
+	[for (jRMProperty : PSMComponentProperty | jRModel.JavaRModelHasProperty) separator('\n')]
+		[if (anAnnotationStack.getRepresentationProperties().annotatesPSMComponentProperty -> includes(jRMProperty))]
+		private [jRMProperty.type/] [jRMProperty.name/];
+		[/if]
+		[if (jRMProperty.PropertyHasHibernateAnnotation.HibernateAnnotationText->includes('@Transient'))]
+		// The Linklist property holds all the hypermedia links to be sent back to the client
+		private List<[jRMProperty.type/]> [jRMProperty.name/] = new ArrayList<[jRMProperty.type/]>();
+		[/if]
+		[if (jRMProperty.PropertyHasHibernateAnnotation.HibernateAnnotationText->at(1).index('@OneToMany') <> -1)]
+		private Set<[jRMProperty.type/]> [jRMProperty.name/] = new HashSet<[jRMProperty.type/]>();
+		[elseif (jRMProperty.PropertyHasHibernateAnnotation.HibernateAnnotationText->at(1).index('@ManyToOne') <> -1)]
+		private [jRMProperty.type/] [jRMProperty.name/];
+		[/if]
+
+	[/for]	
+		private int [jRModel.parentName/]Id;
+
+		/* There follows a list of setter, getter and initialization functions.*/
+		public [jRModel.name/]Representation(){
+			this.representationName="[jRModel.parentName/]";
+			[for (jRMProperty : PSMComponentProperty | jRModel.JavaRModelHasProperty) separator('\n')][if (anAnnotationStack.getRepresentationProperties().annotatesPSMComponentProperty -> includes(jRMProperty))]
+			this.[jRMProperty.name/] = null;[/if][/for]
+		}
+
+		//constructors
+		public [jRModel.name/]Representation representationName(String representationName){
+			this.representationName = representationName;
+			return this;
+		}
+
+		public [jRModel.name/]Representation build(){
+			return new [jRModel.name/]Representation(this);
+		}
+
+		private [jRModel.name/]Representation([jRModel.name/]Representation o[jRModel.name/]Representation){
+			[for (jRMProperty : PSMComponentProperty | jRModel.JavaRModelHasProperty) separator('\n')][if (anAnnotationStack.getRepresentationProperties().annotatesPSMComponentProperty -> includes(jRMProperty))]
+			this.[jRMProperty.name/] = o[jRModel.name/]Representation.[jRMProperty.name/];[/if][/for]
+		}
+
+[for (javaSetterFunction : JavaSetterFunction | jRModel.JavaRModelHasSetter)]
+	[if (javaSetterFunction.hasFunctionParameter->at(1).name = 'linklist')]
+	    public void [javaSetterFunction.name/](List<[javaSetterFunction.hasFunctionParameter->at(1).type/]> [javaSetterFunction.hasFunctionParameter->at(1).name/]){
+        	this.[javaSetterFunction.hasFunctionParameter->at(1).name/] = [javaSetterFunction.hasFunctionParameter->at(1).name/];
+    	}
+		public [jRModel.name/]Representation [javaSetterFunction.hasFunctionParameter->at(1).name/](List<[javaSetterFunction.hasFunctionParameter->at(1).type/]> [javaSetterFunction.hasFunctionParameter->at(1).name/]){
+        	this.[javaSetterFunction.hasFunctionParameter->at(1).name/] = [javaSetterFunction.hasFunctionParameter->at(1).name/];
+    		[if (anAnnotationStack.getRepresentationProperties().annotatesPSMComponentProperty.name -> includes(javaSetterFunction.hasFunctionParameter->at(1).name))]
+			this.representationName = this.representationName+"_[javaSetterFunction.hasFunctionParameter->at(1).name/]";
+			[/if]
+			return this;
+		}  
+	[elseif (javaSetterFunction.hasFunctionParameter->at(1).bIsUnique = false)]
+	    public void [javaSetterFunction.name/](Set<[if (javaSetterFunction.hasFunctionParameter->at(1).type.equalsIgnoreCase('int'))]Integer[elseif (javaSetterFunction.hasFunctionParameter->at(1).type.equalsIgnoreCase('double'))]Double[else][javaSetterFunction.hasFunctionParameter->at(1).type/][/if]> [javaSetterFunction.hasFunctionParameter->at(1).name/]){
+        	this.[javaSetterFunction.hasFunctionParameter->at(1).name/] = [javaSetterFunction.hasFunctionParameter->at(1).name/];
+    	}
+		public [jRModel.name/]Representation [javaSetterFunction.hasFunctionParameter->at(1).name/](Set<[if (javaSetterFunction.hasFunctionParameter->at(1).type.equalsIgnoreCase('int'))]Integer[elseif (javaSetterFunction.hasFunctionParameter->at(1).type.equalsIgnoreCase('double'))]Double[else][javaSetterFunction.hasFunctionParameter->at(1).type/][/if]> [javaSetterFunction.hasFunctionParameter->at(1).name/]){
+        	this.[javaSetterFunction.hasFunctionParameter->at(1).name/] = [javaSetterFunction.hasFunctionParameter->at(1).name/];
+    		[if (anAnnotationStack.getRepresentationProperties().annotatesPSMComponentProperty.name -> includes(javaSetterFunction.hasFunctionParameter->at(1).name))]
+			this.representationName = this.representationName+"_[javaSetterFunction.hasFunctionParameter->at(1).name/]";
+			[/if]
+			return this;
+		}
+	[else]
+	    public void [javaSetterFunction.name/]([javaSetterFunction.hasFunctionParameter->at(1).type/] [javaSetterFunction.hasFunctionParameter->at(1).name/]){
+        	this.[javaSetterFunction.hasFunctionParameter->at(1).name/] = [javaSetterFunction.hasFunctionParameter->at(1).name/];
+    	}
+		public [jRModel.name/]Representation [javaSetterFunction.hasFunctionParameter->at(1).name/]([javaSetterFunction.hasFunctionParameter->at(1).type/] [javaSetterFunction.hasFunctionParameter->at(1).name/]){
+        	this.[javaSetterFunction.hasFunctionParameter->at(1).name/] = [javaSetterFunction.hasFunctionParameter->at(1).name/];
+    		[if (anAnnotationStack.getRepresentationProperties().annotatesPSMComponentProperty.name -> includes(javaSetterFunction.hasFunctionParameter->at(1).name))]
+			this.representationName = this.representationName+"_[javaSetterFunction.hasFunctionParameter->at(1).name/]";
+			[/if]
+			return this;
+		}
+	[/if]
+
+[/for]
+[for (javaGetterFunction : JavaGetterFunction | jRModel.JavaRModelHasGetter)]
+	[if (javaGetterFunction.hasFunctionParameter->at(1).name = 'linklist')]
+	    public List<[javaGetterFunction.hasFunctionParameter->at(1).type/]> [javaGetterFunction.name/](){
+        	return this.[javaGetterFunction.hasFunctionParameter->at(1).name/];
+    	}
+	[elseif (javaGetterFunction.hasFunctionParameter->at(1).bIsUnique = false)]
+	    public Set<[if (javaGetterFunction.hasFunctionParameter->at(1).type.equalsIgnoreCase('int'))]Integer[elseif (javaGetterFunction.hasFunctionParameter->at(1).type.equalsIgnoreCase('double'))]Double[else][javaGetterFunction.hasFunctionParameter->at(1).type/][/if]> [javaGetterFunction.name/](){
+        	return this.[javaGetterFunction.hasFunctionParameter->at(1).name/];
+    	}
+	[else]
+	    public [javaGetterFunction.hasFunctionParameter->at(1).type/] [javaGetterFunction.name/](){
+        	return this.[javaGetterFunction.hasFunctionParameter->at(1).name/];
+    	}
+	[/if]
+[/for]
+
+		//public int get[jRModel.parentName/]Id(){
+        //	return this.[jRModel.parentName/]Id;
+    	//}
+		
+		public void set[jRModel.parentName/]RepresentationName(String representationName){
+        	this.representationName = representationName;
+    	} 
+	
+		public String get[jRModel.parentName/]RepresentationName(){
+        	return this.representationName;
+    	}
+
+}
+
+
+[/file]
+[/if]	
+[/for]
+[/template]
+
+[query private getJavaBuilderPattern(anAnnotationStack : AnnotationStack) : Set(JavaBuilderPattern) =
+		anAnnotationStack.hasDesignPatternsLayer.hasAnnotation -> select (a | a.oclIsTypeOf(JavaBuilderPattern)) -> asSet()
+/]
+
+[query private getJavaRepresentableResources(anAnnotationStack : AnnotationStack) : Set(AnnJavaResourceModel) = 
+	anAnnotationStack.getJavaBuilderPattern().hasJavaDirector.hasJavaBuilder.associatesAnnJavaResourceModel -> asSet()
+/]
+
+[query private getHasJavaRepresentation(anAnnotationStack : AnnotationStack) : Set(AnnJavaResourceModel) =
+	anAnnotationStack.hasDesignPatternsLayer.hasAnnotatedElement -> select(a | a.oclIsTypeOf(AnnJavaResourceModel))->asSet()
+/]
+
+
+[query private getJavaRepresentations(anAnnotationStack : AnnotationStack) : Sequence(JavaResourceModel) =
+	anAnnotationStack.hasDesignPatternsLayer.hasAnnotatedElement -> select(a | a.oclIsTypeOf(JavaResourceModel))->asSequence()
+/]
+
+[query private getRepresentationProperties(anAnnotationStack : AnnotationStack): Sequence(AnnPSMComponentProperty) = 
+	anAnnotationStack.hasDesignPatternsLayer.hasAnnotatedElement -> select(a | a.oclIsTypeOf(AnnPSMComponentProperty)) ->asSequence()
+/]

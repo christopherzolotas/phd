@@ -1,0 +1,293 @@
+-- @path COREPIMIN=/eu.scasefp7.eclipse.mde.m2m/Metamodels/PIMMetamodel.ecore
+-- @path DESCIMIN=/eu.scasefp7.eclipse.mde.m2m/Metamodels/DesignPatternsLayerCIMMetamodel.ecore
+-- @path CORECIMIN=/eu.scasefp7.eclipse.mde.m2m/Metamodels/CIMMetamodel.ecore
+-- @path DESPIMOUT=/eu.scasefp7.eclipse.mde.m2m/Metamodels/DesignPatternsLayerPIMMetamodel.ecore
+
+module DesignPatternsCIMToPIMTransformation;
+create OUT : DESPIMOUT from IN : DESCIMIN, IN1 : CORECIMIN, IN2 : COREPIMIN;
+
+helper def: getAnnResources : Sequence(DESCIMIN!AnnResource) =
+    let AllAnnResources : DESCIMIN!AnnResource = DESCIMIN!AnnResource.allInstances()->asSequence() in
+        AllAnnResources;
+
+helper def: getAnnAlgoResources : Sequence(DESCIMIN!AnnAlgoResource) =
+    let AllAnnAlgoResources : DESCIMIN!AnnAlgoResource = DESCIMIN!AnnAlgoResource.allInstances()->asSequence() in
+        AllAnnAlgoResources;
+
+helper def: getResources : Sequence(CORECIMIN!Resource) =
+	let AllResources : CORECIMIN!Resource = CORECIMIN!Resource.allInstances()->asSequence() in
+		AllResources;
+
+helper def: getAnnCRUDActivites : Sequence(DESCIMIN!AnnCRUDActivity) =
+    let AllAnnCRUDActivites : DESCIMIN!AnnCRUDActivity = DESCIMIN!AnnCRUDActivity.allInstances()->asSequence() in
+        AllAnnCRUDActivites;
+
+helper context DESCIMIN!AnnResource def: getPIMResourceModel : COREPIMIN!ResourceModel =
+	let PIMResourceModels : COREPIMIN!ResourceModel = COREPIMIN!ResourceModel.allInstances()->asSequence()->select(ResourceModel |
+		ResourceModel.parentName.toLower() = self.annotatesResource.name.toLower())->at(1) in
+		PIMResourceModels;
+
+helper context DESCIMIN!AnnAlgoResource def: getPIMAlgoResourceModel : COREPIMIN!AlgoResourceModel =
+	let PIMAlgoResourceModels : COREPIMIN!AlgoResourceModel = COREPIMIN!AlgoResourceModel.allInstances()->asSequence()->select(ResourceModel |
+		ResourceModel.parentName.toLower() = self.annotatesAlgoResource.name.toLower())->at(1) in
+		PIMAlgoResourceModels;
+
+helper context DESCIMIN!AnnProperty def: getPIMComponentProperty : COREPIMIN!PIMComponentProperty =
+	let ParentCIMResource : CORECIMIN!Resource = CORECIMIN!Resource.allInstances()->asSequence()->select(CIMResource | 
+		CIMResource.hasProperty->includes(self.annotatesProperty))->at(1) in
+		let ParentPIMResourceModel : COREPIMIN!ResourceModel = COREPIMIN!ResourceModel.allInstances()->asSequence()->select(PIMResourceModel | 
+			PIMResourceModel.parentName = ParentCIMResource.name)->at(1) in
+			let AllPIMComponentProperties : COREPIMIN!PIMComponentProperty = COREPIMIN!PIMComponentProperty.allInstances()->asSequence() in
+				AllPIMComponentProperties->select(PIMComponentProperty | ParentPIMResourceModel.rModelHasProperty->includes(PIMComponentProperty)
+					and (PIMComponentProperty.name = self.annotatesProperty.name))->at(1);
+
+-- Get the CRUD verb of an observer
+helper context DESCIMIN!Observer def: getObserversCRUDActivity : CORECIMIN!CRUDActivity = 
+	self.observes.extendsAnnCRUDActivity.annotatesCRUDActivity;
+
+-- Get the resource of the observer
+helper context DESCIMIN!Observer def: getObserversParentCIMResource: CORECIMIN!Resource =
+	self.ReferencesAnnResource.annotatesResource;
+
+-- Get all ResourceControllers
+helper def: getResourceControllers : Sequence(COREPIMIN!ResourceController) =
+	let AllResourceControllers : COREPIMIN!ResourceController = COREPIMIN!ResourceController.allInstances() -> asSequence() in
+		AllResourceControllers;
+
+-- GETCRUDActivityHandler of a CRUD Activity
+helper context DESCIMIN!ObservableAnnCRUDActivity def: getCRUDActivityHandler : COREPIMIN!CRUDActivityHandler = 
+	let ParentCIMResource : CORECIMIN!Resource = self.referencesAnnResource.annotatesResource in 
+	let ParentPIMResourceModel : COREPIMIN!ResourceModel = COREPIMIN!ResourceModel.allInstances()->asSequence()->select(PIMResourceModel | PIMResourceModel.parentName = ParentCIMResource.name)->at(1) in 
+	let ALLResourceControllers : Sequence(COREPIMIN!ResourceController) = COREPIMIN!ResourceController.allInstances() -> asSequence() in
+	let ResourceController : COREPIMIN!ResourceController = ALLResourceControllers -> select( ResourceController | ResourceController.parentName = ParentPIMResourceModel.parentName) -> at(1) in
+	let AllResourceControllerCRUDActivities : Sequence(COREPIMIN!ResourceControllerCRUDActivity) = ResourceController.rControllerHasCRUDActivity -> asSequence() in
+	let thisResourceControllerManager : COREPIMIN!ResourceControllerManager = COREPIMIN!ResourceControllerManager.allInstances() -> select( a | a.parentName = ParentPIMResourceModel.parentName) in 
+    let thisReousrceControllerManagerCRUDActivities : Sequence(COREPIMIN!ResourceControllerCRUDActivity) = thisResourceControllerManager -> collect(a | a.rCManagerHasCRUDActivity).at(1) in 
+    AllResourceControllerCRUDActivities -> union( thisReousrceControllerManagerCRUDActivities ) -> select(ResourceControllerCRUDActivity | ResourceControllerCRUDActivity.crudVerb = self.extendsAnnCRUDActivity.annotatesCRUDActivity.CRUDVerb).at(1).hasCRUDActivityHandler; 
+
+
+helper def: getAnnProperties : Sequence(DESCIMIN!AnnProperty) =
+	let AllCIMAnnProperties : DESCIMIN!AnnProperty = DESCIMIN!AnnProperty.allInstances()->asSequence() in
+		AllCIMAnnProperties;
+
+helper def: getCIMBuilderPatterns : Sequence(DESCIMIN!BuilderPattern) =
+	let AllCIMBuilderPatterns : DESCIMIN!BuilderPattern = DESCIMIN!BuilderPattern.allInstances()->asSequence() in
+		AllCIMBuilderPatterns;
+
+helper def: getCIMBridgePatterns : Sequence(DESCIMIN!BridgePattern) =
+	let AllCIMBridgePatterns : DESCIMIN!BridgePattern = DESCIMIN!BridgePattern.allInstances()->asSequence() in
+		AllCIMBridgePatterns;
+
+helper def: getCIMObserverPatterns : Sequence(DESCIMIN!ObserverPattern) =
+	let AllCIMObserverPatterns : DESCIMIN!ObserverPattern = DESCIMIN!ObserverPattern.allInstances()->asSequence() in
+		AllCIMObserverPatterns;
+
+helper def: getCIMMementoPatterns : Sequence(DESCIMIN!MementoPattern) =
+	let AllCIMMementoPatterns : DESCIMIN!MementoPattern = DESCIMIN!MementoPattern.allInstances()->asSequence() in
+		AllCIMMementoPatterns;
+
+helper def: getDirector : DESCIMIN!Director = DESCIMIN!Director ;
+
+helper def: getCIMBuilders : Sequence(DESCIMIN!Builder) =
+	let AllCIMBuilders : DESCIMIN!Builder = DESCIMIN!Builder.allInstances()->asSequence() in
+	AllCIMBuilders;
+
+helper def: getCIMObservers : Sequence(DESCIMIN!Observer) =
+	let AllCIMObservers : DESCIMIN!Builder = DESCIMIN!Observer.allInstances()->asSequence() in
+	AllCIMObservers;
+
+helper def: getCIMMementos : Sequence(DESCIMIN!Memento) =
+	let AllCIMMementos : DESCIMIN!Memento = DESCIMIN!Memento.allInstances()->asSequence() in 
+	AllCIMMementos;
+
+helper def: getCIMConcreteBuilders : Sequence(DESCIMIN!ConcreteBuilder) =
+	let AllCIMConcreteBuilders : DESCIMIN!ConcreteBuilder = DESCIMIN!ConcreteBuilder.allInstances()->asSequence() in
+	AllCIMConcreteBuilders;
+
+helper def: getCIMRepresentations : Sequence(DESCIMIN!Representation) =
+	let AllCIMRepresentations : DESCIMIN!Representation = DESCIMIN!Representation.allInstances()->asSequence() in
+		AllCIMRepresentations;
+
+helper def: getCIMObservableAnnCRUDActivities : Sequence(DESCIMIN!ObservableAnnCRUDActivity) =
+	let AllCIMObservableAnnCRUDActivities : DESCIMIN!ObservableAnnCRUDActivity = DESCIMIN!ObservableAnnCRUDActivity.allInstances()->asSequence() in
+		AllCIMObservableAnnCRUDActivities;
+
+
+rule DesignPatternsLayerCIMToPIM{
+	from
+		DesignPatternsLayerCIMModel : DESCIMIN!AnnotationModel
+	to
+		DesignPatternsLayerPIMModel : DESPIMOUT!AnnotationModel(
+			name <- DesignPatternsLayerCIMModel.name,
+			hasAnnotatedElement <- Sequence{thisModule.getAnnResources -> collect(annResource | thisModule.createAnnResourceModel(annResource.getPIMResourceModel)),
+											thisModule.getAnnAlgoResources -> collect(annAlgoResource | thisModule.createAnnAlgoResourceModel(annAlgoResource.getPIMAlgoResourceModel)),
+											thisModule.getAnnProperties -> collect(annProperty | thisModule.createAnnPIMComponentProperty(annProperty.getPIMComponentProperty)),								
+											thisModule.getCIMObservableAnnCRUDActivities -> collect( ObservableAnnCRUDActivity | thisModule.createAnnCRUDActivityHandler(ObservableAnnCRUDActivity.getCRUDActivityHandler))
+			},														
+				--kai ta upoloipa
+			hasAnnotation <- Sequence{thisModule.getCIMBuilderPatterns -> collect(DesignPattern | thisModule.createPIMBuilderPattern(DesignPattern)),
+										thisModule.getCIMObserverPatterns -> collect(DesignPattern | thisModule.createPIMObserverPattern(DesignPattern)),
+										thisModule.getCIMObservableAnnCRUDActivities -> collect( ObservableAnnCRUDActivity | thisModule.createObservableAnnCRUDActivityHandler(ObservableAnnCRUDActivity)),
+										thisModule.getCIMMementoPatterns -> collect(DesignPattern | thisModule.createPIMMementoPattern(DesignPattern)),
+										thisModule.getCIMBridgePatterns -> collect(DesignPattern | thisModule.createPIMBridgePattern(DesignPattern))
+										}		  
+	)
+}
+
+unique lazy rule createAnnResourceModel{
+	from
+		ResourceModel : COREPIMIN!ResourceModel
+	to
+		AnnResourceModel : DESPIMOUT!AnnResourceModel(
+			annotatesResourceModel <- ResourceModel	
+		)
+}
+
+unique lazy rule createAnnAlgoResourceModel{
+	from
+		AlgoResourceModel : COREPIMIN!AlgoResourceModel
+	to
+		AnnAlgoResourceModel : DESPIMOUT!AnnAlgoResourceModel(
+			annotatesAlgoResourceModel <- AlgoResourceModel	
+		)
+}
+
+unique lazy rule createAnnResourceMemModel{
+	from
+		ResourceModel : COREPIMIN!ResourceModel,
+		Resource : COREPSMIN!Resource
+	to
+		AnnResourceModel : DESPIMOUT!AnnResourceModel(
+			annotatesResourceModel <- ResourceModel,
+			hasMemento <- Resource.hasMemento
+		)
+}
+
+unique lazy rule createAnnPIMComponentProperty{
+	from
+		PIMComponentProperty : COREPIMIN!PIMComponentProperty
+	to
+		AnnPIMComponentProperty : DESPIMOUT!AnnPIMComponentProperty(
+			annotatesPIMComponentProperty <- PIMComponentProperty	
+		)
+}
+
+unique lazy rule createAnnCRUDActivityHandler{
+	from
+		CRUDActivityHandler : COREPIMIN!CRUDActivityHandler
+	to
+		AnnCRUDActivityHandler: DESPIMOUT!AnnCRUDActivityHandler(
+			annotatesCRUDActivityHandler <- CRUDActivityHandler	
+		)
+}
+
+unique lazy rule createPIMBuilderPattern{
+	from
+		CIMBuilderPattern : DESCIMIN!BuilderPattern
+	to
+		PIMBuilderPattern : DESPIMOUT!BuilderPattern(
+			associatesAnnResourceModel <- thisModule.getAnnResources -> collect(annResource | thisModule.createAnnResourceModel(annResource.getPIMResourceModel)),
+			hasDirector 			   <- thisModule.createDirector(thisModule.getDirector) 
+		)
+}
+
+unique lazy rule createDirector{
+	from
+		CIMDirector : DESCIMIN!Director
+	to
+		PIMDIRECTOR : DESPIMOUT!Director(
+			hasBuilder <- Sequence{thisModule.getCIMConcreteBuilders -> collect(ConcreteBuilders | thisModule.createPIMConcreteBuilder(ConcreteBuilders))
+								   }		
+			)		
+}
+
+unique lazy rule createPIMConcreteBuilder{
+	from 
+		CIMConcreteBuilder : DESCIMIN!ConcreteBuilder
+	to
+		PIMConcreteBuilder : DESPIMOUT!ConcreteBuilder(
+			associatesAnnResourceModel <- thisModule.createAnnResourceModel(CIMConcreteBuilder.associatesAnnResource.getPIMResourceModel),
+			buildsRepresentation <- thisModule.createPIMRepresentation(CIMConcreteBuilder.buildsRepresentation)
+		)
+}
+
+lazy rule createPIMRepresentation{
+	from
+		CIMRepresentation : DESCIMIN!Representation
+	to
+		PIMRepresentation : DESPIMOUT!Representation(
+			name <- CIMRepresentation.name,
+			-- Give a unique representation ID // tha einai tis morfis representation_propertyx_propertyy...
+			resourceInstanceId <- CIMRepresentation.name.toString()+CIMRepresentation.has.size().toString(),
+			refersTo <- thisModule.createAnnResourceModel(CIMRepresentation.refersTo.getPIMResourceModel),
+			has <- CIMRepresentation.has -> collect(annProperty | thisModule.createAnnPIMComponentProperty(annProperty.getPIMComponentProperty))
+		)
+}
+
+--RULES FOR MEMENTO PATTERN
+unique lazy rule createPIMMementoPattern{
+	from
+		CIMMementoPattern : DESCIMIN!MementoPattern
+	to
+		PIMMementoPattern : DESPIMOUT!MementoPattern(
+			hasPIMMemento  <- Sequence{ thisModule.getCIMMementos -> collect( memento | thisModule.createPIMMemento(memento))} --thisModule.createPIMMemento(thisModule.getCIMMementos) -- 
+		)
+}
+
+unique lazy rule createPIMMemento{
+	from
+		Memento : DESCIMIN!Memento
+	to
+		PIMMemento : DESPIMOUT!PIMMemento(
+			mementoNum <- Memento.mementoNum,
+			referencesAnnResourceModel <- thisModule.createAnnResourceModel(Memento.referencesAnnResource.getPIMResourceModel)
+		)
+}
+
+-- RULES FOR BRIDGE
+unique lazy rule createPIMBridgePattern{
+	from
+		CIMBridgePattern : DESCIMIN!BridgePattern
+	to
+		PIMBridgePattern : DESPIMOUT!BridgePattern(
+			bMakeBridgePatternForExternalService <- CIMBridgePattern.bMakeBridgePatternForExternalService ,
+			bMakeBridgePatternForSearch <- CIMBridgePattern.bMakeBridgePatternForSearch ,
+			associatesAnnAlgoResourceModel <- CIMBridgePattern.associatesAnnAlgoResource -> collect(a | thisModule.createAnnAlgoResourceModel(a.getPIMAlgoResourceModel) )
+		)
+}
+
+
+-- RULES FOR OBSERVER PATTERN
+unique lazy rule createPIMObserverPattern{
+	from
+		CIMObserverPattern : DESCIMIN!ObserverPattern
+	to
+		PIMOBserverPattern : DESPIMOUT!ObserverPattern(
+			hasObserver <- Sequence{thisModule.getCIMObservers -> collect( observer | thisModule.createPIMObserver(observer))}
+		)
+}
+
+unique lazy rule createPIMObserver{
+    from
+        CIMObserver : DESCIMIN!Observer
+    to
+        PIMObserver : DESPIMOUT!Observer(
+            referencesAnnResourceModel <- thisModule.createAnnResourceModel(CIMObserver.referencesAnnResource.getPIMResourceModel),
+            -- TODO: add the observes relation
+            observes <- thisModule.createObservableAnnCRUDActivityHandler( CIMObserver.observes ),
+            name <- CIMObserver.name
+        )
+}
+
+unique lazy rule createObservableAnnCRUDActivityHandler{
+    from
+        CIMObservableAnnCRUDActivity : DESCIMIN!ObservableAnnCRUDActivity
+    to
+        PIMObservableAnnCRUDActivityHanlder : DESPIMOUT!ObservableAnnCRUDActivityHandler(
+            isObservedBy <- CIMObservableAnnCRUDActivity.isObservedby -> collect( observer | thisModule.createPIMObserver(observer)),-- Sequence{ CIMObservableAnnCRUDActivity -> collect (CIMObservableAnnCRUDActivity | thisModule.createObserver(CIMObservableAnnCRUDActivity.isObservedby))},         --thisModule.createPIMObserver( CIMObservableAnnCRUDActivity.isObservedby ) },
+            referencesAnnResourceModel <- thisModule.createAnnResourceModel(CIMObservableAnnCRUDActivity.referencesAnnResource.getPIMResourceModel),
+            extendsAnnCRUDActivityHandler <- thisModule.createAnnCRUDActivityHandler(CIMObservableAnnCRUDActivity.getCRUDActivityHandler)
+            -- kai tis 4 synartiseis 
+            )
+}
+

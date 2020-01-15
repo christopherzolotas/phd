@@ -1,0 +1,313 @@
+[comment encoding = UTF-8 /]
+[module javaMemento('platform:/plugin/eu.scasefp7.eclipse.mde.m2m/Metamodels/AnnotationLayerStack.ecore','platform:/plugin/eu.scasefp7.eclipse.mde.m2m/Metamodels/PSMMetamodel.ecore', 'platform:/plugin/eu.scasefp7.eclipse.mde.m2m/Metamodels/DesignPatternsLayerPSMMetamodel.ecore')]
+
+[template public javaMemento(anAnnotationStack : AnnotationStack)]
+[comment something is wrong HERE /]
+[for (jRModel : JavaResourceModel | anAnnotationStack.hasCorePSM.hasJavaRModel)]
+[comment That must be done for those implied in DesingPatternsLayerPSM.xmi getJavaRepresentations().annotatesJavaResourceModel [if (anAnnotationStack.getHasJavaRepresentation().annotatesJavaResourceModel.name.toString().contains(jRModel.name.toString()))/]
+[if (anAnnotationStack.getJavaMementableResources().annotatesJavaResourceModel -> asSet() -> includes(jRModel))]
+
+[file (anAnnotationStack.hasCorePSM.name + '/src/main/java/eu/fp7/scase/' + anAnnotationStack.hasCorePSM.name.toLowerCase() + '/' + jRModel.parentName + '/Java' + jRModel.parentName + 'Memento.java', false, 'UTF-8')]
+/*
+ * ARISTOSTLE UNIVERSITY OF THESSALONIKI
+ * Copyright (C) 2015
+ * Aristotle University of Thessaloniki
+ * Department of Electrical & Computer Engineering
+ * Division of Electronics & Computer Engineering
+ * Intelligent Systems & Software Engineering Lab
+ *
+ * Project             : [anAnnotationStack.hasCorePSM.name/]
+ * WorkFile            : 
+ * Compiler            : 
+ * File Description    : 
+ * Document Description: 
+* Related Documents	   : 
+* Note				   : 
+* Programmer		   : RESTful MDE Engine created by Christoforos Zolotas / Design patterns implementations created by Dontsios Dimitrios
+* Contact			   : christopherzolotas@issel.ee.auth.gr / dontsios@gmail.com
+*/
+
+package eu.fp7.scase.[anAnnotationStack.hasCorePSM.name.toLowerCase()/].[jRModel.parentName/];
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.FetchType;
+import javax.persistence.GeneratedValue;
+import javax.persistence.Id;
+import javax.persistence.OneToMany;
+import javax.persistence.OneToOne;
+import javax.persistence.ManyToOne;
+import javax.persistence.Table;
+import javax.persistence.Transient;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import java.util.Date;
+
+import javax.persistence.JoinColumn;
+import javax.persistence.UniqueConstraint;
+
+import javax.ws.rs.core.UriInfo;
+
+import org.hibernate.annotations.Cascade;
+import org.hibernate.annotations.CascadeType;
+
+import java.util.ArrayList;
+
+[if (jRModel.hasRelatedJavaRMManager->size() > 0)]
+import java.util.Iterator;
+[/if]
+
+[for (jRRModel : JavaResourceModel | jRModel.hasRelatedJavaRMManager.hasRelatedJavaRModel)]
+[if (jRRModel <> jRModel)]
+import eu.fp7.scase.[anAnnotationStack.hasCorePSM.name.toLower()/].[jRRModel.parentName/].[jRRModel.name/];
+[/if]
+[/for]
+[for (jPRModel : JavaResourceModel | anAnnotationStack.hasCorePSM.hasJavaRModel)]
+[if (jPRModel.hasRelatedJavaRMManager.hasRelatedJavaRModel->includes(jRModel) and jPRModel <> jRModel)]
+import eu.fp7.scase.[anAnnotationStack.hasCorePSM.name.toLower()/].[jPRModel.parentName/].[jPRModel.name/];
+[/if]
+[/for]
+
+import eu.fp7.scase.[anAnnotationStack.hasCorePSM.name.toLower()/].utilities.HibernateController;
+import eu.fp7.scase.[anAnnotationStack.hasCorePSM.name.toLower()/].utilities.HypermediaLink;
+
+@Entity
+@Table(name="\"[jRModel.parentName/]Memento\"")
+public class Java[jRModel.parentName/]Memento{
+
+	@Column(name = "\"oldness\"")
+	private int oldness;
+
+	@Id
+	@GeneratedValue
+	@Column(name = "\"mementoid\"")
+	private int mementoId;
+
+	public void setmementoId(int mementoId){
+    	this.mementoId = mementoId;
+	}
+
+    public int getmementoId(){
+    	return this.mementoId;
+	}
+
+	public void setoldness(int oldness){
+    	this.oldness = oldness;
+	}
+
+    public int getoldness(){
+    	return this.oldness;
+	}
+
+	public void createMemento(){
+		HibernateController oHibernateController = HibernateController.getHibernateControllerHandle();
+		oHibernateController.createJava[jRModel.parentName/]Memento(this);
+		System.out.println("Memento was created successfully");
+	}
+	
+	public void defineMemento(int [jRModel.parentName/]Id){
+			HibernateController oHibernateController = HibernateController.getHibernateControllerHandle();
+			System.out.println("Defining Memento");
+			Java[jRModel.parentName/]Memento oMemento = oHibernateController.get[jRModel.parentName/]Memento(this);
+			[jRModel.name/] o[jRModel.name/] = new [jRModel.name/]();
+			o[jRModel.name/].set[jRModel.parentName/]Id([jRModel.parentName/]Id);
+			o[jRModel.name/] = oHibernateController.get[jRModel.parentName/](o[jRModel.name/]);
+
+			[comment for each of the resources properties, the accordign memento property shall be also set /]
+			oMemento.set[jRModel.parentName/]Id(o[jRModel.name/].get[jRModel.parentName/]Id());
+			[for (jRMProperty : PSMComponentProperty | jRModel.JavaRModelHasProperty) separator('\n')][if (jRMProperty.bIsUnique = true and not jRMProperty.bIsPrimaryIdentifier)]
+			oMemento.set[jRMProperty.name/](o[jRModel.name/].get[jRMProperty.name/]());[/if][/for]
+			oMemento.setoldness(0);
+
+			System.out.println("Trying to update mememto with memento id: "+Integer.toString(oMemento.getmementoId()));
+			oHibernateController.updateJava[jRModel.parentName/]Memento(oMemento);
+
+			updateMementos(oMemento);
+			System.out.println("Mementos were updated successfully");
+		}
+
+		private void updateMementos(Java[jRModel.parentName/]Memento oMemento){
+			HibernateController oHibernateController = HibernateController.getHibernateControllerHandle();
+			ArrayList<Java[jRModel.parentName/]Memento> mementos = new ArrayList<Java[jRModel.parentName/]Memento>();
+			try{
+				mementos = oHibernateController.get[jRModel.parentName/]Mementos(mementos);
+			}catch(Exception e){
+				System.out.println("No Mementos Found. Creating or updating table");
+			}
+			for( Java[jRModel.parentName/]Memento m : mementos ){
+				System.out.println("Memento "+Integer.toString(m.getmementoId())+" linked to [jRModel.parentName/] "+ Integer.toString(m.get[jRModel.parentName/]Id()));
+				if( m.get[jRModel.parentName/]Id() == oMemento.get[jRModel.parentName/]Id()){
+					System.out.println("Updating memento oldness");
+					if(m.getoldness() < [for( mem : JavaResourceModelMemento | anAnnotationStack.getMementos())][if (mem.referencesAnnJavaResourceModel.annotatesJavaResourceModel.parentName.toString().equalsIgnoreCase(jRModel.parentName))][mem.mementoNum/][/if][/for]){
+						m.setoldness(m.getoldness()+1);
+						oHibernateController.updateJava[jRModel.parentName/]Memento(m);
+					}else{
+						oHibernateController.deleteJava[jRModel.parentName/]Memento(m);
+					}
+				}
+			}
+		}
+
+		public [jRModel.name/] get[jRModel.parentName/]MementoHanlder(int [jRModel.parentName/]Id, int oldness){
+			HibernateController oHibernateController = HibernateController.getHibernateControllerHandle();
+			[jRModel.name/] o[jRModel.name/] = new [jRModel.name/]();
+			
+			ArrayList<Java[jRModel.parentName/]Memento> mementos = new ArrayList<Java[jRModel.parentName/]Memento>();
+			try{
+				mementos = oHibernateController.get[jRModel.parentName/]Mementos(mementos);
+			}catch(Exception e){
+				System.out.println("No Mementos Found. Creating or updating table");
+			}
+			
+			//Add memento items to the returning model
+			for( Java[jRModel.parentName/]Memento m : mementos ){
+				if(m.getoldness() == oldness & m.get[jRModel.parentName/]Id() == [jRModel.parentName/]Id){
+					[comment FOR EACH ONE OF jRModel ' s resources /]
+				[for (jRMProperty : PSMComponentProperty | jRModel.JavaRModelHasProperty) separator('\n')]	
+					[if (jRMProperty.bIsUnique = true and not jRMProperty.bIsPrimaryIdentifier)]
+					o[jRModel.name/].set[jRMProperty.name/](m.get[jRMProperty.name/]());
+					[/if]
+				[/for]
+					o[jRModel.name/].set[jRModel.parentName/]Id([jRModel.parentName/]Id);
+					break;
+				}
+			}
+        	return o[jRModel.name/];
+		}
+
+		public [jRModel.name/] putRestore[jRModel.parentName/]FromMementoHandler(int [jRModel.parentName/]Id, int oldness){
+			HibernateController oHibernateController = HibernateController.getHibernateControllerHandle();
+			[jRModel.name/] o[jRModel.name/] = new [jRModel.name/]();
+			ArrayList<Java[jRModel.parentName/]Memento> mementos = new ArrayList<Java[jRModel.parentName/]Memento>();
+			o[jRModel.name/].set[jRModel.parentName/]Id([jRModel.parentName/]Id);
+			try{
+				mementos = oHibernateController.get[jRModel.parentName/]Mementos(mementos);
+			}catch(Exception e){
+				System.out.println("No Mementos Found. Creating or updating table");
+			}
+			//check if the [jRModel.parentName/] exists in the database. If it exists add add the properties. If not create it again.
+			try{
+				//this works.
+				o[jRModel.name/] = oHibernateController.get[jRModel.parentName/](o[jRModel.name/]);
+				System.out.println("Resource found on DB");
+					//Add memento items to the returning model
+				for( Java[jRModel.parentName/]Memento m : mementos ){
+					if(m.getoldness() == oldness & m.get[jRModel.parentName/]Id() == [jRModel.parentName/]Id){
+					[for (jRMProperty : PSMComponentProperty | jRModel.JavaRModelHasProperty) separator('\n')]	
+						[if (jRMProperty.bIsUnique = true and not jRMProperty.bIsPrimaryIdentifier)]
+						o[jRModel.name/].set[jRMProperty.name/](m.get[jRMProperty.name/]());
+						[/if]
+					[/for]
+						break;
+					}
+				}
+				oHibernateController.put[jRModel.parentName/](o[jRModel.name/]);
+				return o[jRModel.name/];
+			}catch(Exception e){
+				System.out.println("Resource was not found on DB. Posting it again");
+				mementos = oHibernateController.get[jRModel.parentName/]Mementos(mementos);
+				[jRModel.name/] newo[jRModel.name/] = new [jRModel.name/]();
+				newo[jRModel.name/].set[jRModel.parentName/]Id([jRModel.parentName/]Id);
+				for( Java[jRModel.parentName/]Memento m : mementos ){
+					if(m.getoldness() == oldness & m.get[jRModel.parentName/]Id() == [jRModel.parentName/]Id){
+						[for (jRMProperty : PSMComponentProperty | jRModel.JavaRModelHasProperty) separator('\n')]	
+							[if (jRMProperty.bIsUnique = true and not jRMProperty.bIsPrimaryIdentifier)]
+						newo[jRModel.name/].set[jRMProperty.name/](m.get[jRMProperty.name/]());
+							[/if]
+						[/for]
+						break;
+					}
+				}
+				newo[jRModel.name/] = oHibernateController.post[jRModel.parentName/](newo[jRModel.name/]);
+				this.set[jRModel.parentName/]Id(newo[jRModel.name/].get[jRModel.parentName/]Id());
+				System.out.println(Integer.toString(this.get[jRModel.parentName/]Id()));
+				return newo[jRModel.name/];
+			}
+		}
+
+	//there folows a list of the [jRModel.parentName/] properties 
+[for (jRMProperty : PSMComponentProperty | jRModel.JavaRModelHasProperty) separator('\n')]
+	[if (jRMProperty.PropertyHasHibernateAnnotation.HibernateAnnotationText->includes('@Transient'))]
+		// The Linklist property holds all the hypermedia links to be sent back to the client
+		@Transient
+		private List<[jRMProperty.type/]> [jRMProperty.name/] = new ArrayList<[jRMProperty.type/]>();
+	[elseif (jRMProperty.PropertyHasHibernateAnnotation.HibernateAnnotationText->at(1).index('@OneToMany') <> -1)]
+		// This property models the One to Many relationship between two resources as it is defined by the Hibernate syntax below.
+		@Transient
+		private Set<[jRMProperty.type/]> [jRMProperty.name/] = new HashSet<[jRMProperty.type/]>();
+	[elseif (jRMProperty.PropertyHasHibernateAnnotation.HibernateAnnotationText->at(1).index('@ManyToOne') <> -1)]
+		// This property models the Many to One relationship between two resources as it is defined by the Hibernate syntax below.
+		@Transient
+		private [jRMProperty.type/] [jRMProperty.name/];
+	[else]
+		[if(not jRMProperty.bIsPrimaryIdentifier)]
+		[for (propertyHibernateAnnotation : HibernateAnnotation | jRMProperty.PropertyHasHibernateAnnotation)]
+		[propertyHibernateAnnotation.HibernateAnnotationText/]
+		[/for]
+		[if (jRMProperty.bIsUnique = true)]
+		private [jRMProperty.type/] [jRMProperty.name/];
+		[/if]
+		[/if]
+	[/if]
+[/for]
+	
+	@Column(name = "\"[jRModel.parentName/]id\"")
+	private int [jRModel.parentName/]Id;
+
+	/* There follows a list of setter and getter functions.*/
+	[for (javaSetterFunction : JavaSetterFunction | jRModel.JavaRModelHasSetter)]
+		[if (javaSetterFunction.hasFunctionParameter->at(1).bIsUnique = true)]
+			public void [javaSetterFunction.name/]([javaSetterFunction.hasFunctionParameter->at(1).type/] [javaSetterFunction.hasFunctionParameter->at(1).name/]){
+	        	this.[javaSetterFunction.hasFunctionParameter->at(1).name/] = [javaSetterFunction.hasFunctionParameter->at(1).name/];
+	    	}
+		[/if]
+	[/for]
+	[for (javaGetterFunction : JavaGetterFunction | jRModel.JavaRModelHasGetter)]
+		[if((javaGetterFunction.hasFunctionParameter->at(1).bIsUnique = true))]
+		    public [javaGetterFunction.hasFunctionParameter->at(1).type/] [javaGetterFunction.name/](){
+	        	return this.[javaGetterFunction.hasFunctionParameter->at(1).name/];
+	    	}
+		[/if]
+	[/for]
+
+}
+
+
+[/file]
+[/if]	
+[/for]
+
+[/template]
+
+[query private getJavaMementoPattern(anAnnotationStack : AnnotationStack) : Set(JavaMementoPattern) =
+	anAnnotationStack.hasDesignPatternsLayer.hasAnnotation -> select (a | a.oclIsTypeOf(JavaMementoPattern)) -> asSet()
+/]
+
+[query private getJavaMementableResources(anAnnotationStack : AnnotationStack) : Sequence(AnnJavaResourceModel) = 
+	anAnnotationStack.getJavaMementoPattern().hasJavaResourceModelMemento.referencesAnnJavaResourceModel -> asSequence()
+/]
+
+[query private getMementoPattern(anAnnotationStack : AnnotationStack) : Sequence(JavaMementoPattern) =
+	anAnnotationStack.hasDesignPatternsLayer.hasAnnotation -> select(a | a.oclIsTypeOf(JavaMementoPattern)) -> asSequence() 
+/]
+
+[query private getMementos(anAnnotationStack : AnnotationStack) : Sequence(JavaResourceModelMemento) =
+	anAnnotationStack.getMementoPattern().hasJavaResourceModelMemento -> asSequence()
+/] 
+
+
+[comment query private getHasJavaRepresentation(anAnnotationStack : AnnotationStack) : Set(AnnJavaResourceModel) =
+	anAnnotationStack.hasDesignPatternsLayer.hasAnnotatedElement -> select(a | a.oclIsTypeOf(AnnJavaResourceModel))->asSet()
+/]
+
+[comment query private getJavaRepresentations(anAnnotationStack : AnnotationStack) : Sequence(JavaResourceModel) =
+	anAnnotationStack.hasDesignPatternsLayer.hasAnnotatedElement -> select(a | a.oclIsTypeOf(JavaResourceModel))->asSequence()
+/]
+
+[comment query private getRepresentationProperties(anAnnotationStack : AnnotationStack): Sequence(AnnPSMComponentProperty) = 
+	anAnnotationStack.hasDesignPatternsLayer.hasAnnotatedElement -> select(a | a.oclIsTypeOf(AnnPSMComponentProperty)) ->asSequence()
+/]

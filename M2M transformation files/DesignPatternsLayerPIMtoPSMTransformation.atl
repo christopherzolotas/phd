@@ -1,0 +1,280 @@
+-- @path COREPIMIN=/eu.scasefp7.eclipse.mde.m2m/Metamodels/PIMMetamodel.ecore
+-- @path DESPIMIN=/eu.scasefp7.eclipse.mde.m2m/Metamodels/DesignPatternsLayerPIMMetamodel.ecore
+-- @path COREPSMIN=/eu.scasefp7.eclipse.mde.m2m/Metamodels/PSMMetamodel.ecore
+-- @path DESPSMOUT=/eu.scasefp7.eclipse.mde.m2m/Metamodels/DesignPatternsLayerPSMMetamodel.ecore
+
+module DesignPatternsLayerPIMtoPSMTransformation;
+create OUT : DESPSMOUT from IN : DESPIMIN, IN1 : COREPIMIN, IN2 : COREPSMIN;
+
+helper def: getAnnResourceModel : Sequence(DESPIMIN!AnnResourceModel) =
+	let AllAnnResourceModels : DESPIMIN!AnnResourceModel = DESPIMIN!AnnResourceModel.allInstances()->asSequence() in
+		AllAnnResourceModels;
+
+helper def: getAnnAlgoResourceModel : Sequence(DESPIMIN!AnnAlgoResourceModel) =
+	let AllAnnAlgoResourceModels : DESPIMIN!AnnAlgoResourceModel = DESPIMIN!AnnAlgoResourceModel.allInstances()->asSequence() in
+		AllAnnAlgoResourceModels;
+
+helper context DESPIMIN!AnnResourceModel def: getPSMResourceModel : COREPSMIN!JavaResourceModel =
+	let JavaResourceModel : COREPSMIN!JavaResourceModel = COREPSMIN!JavaResourceModel.allInstances()->asSequence()->select(jRModel |
+		jRModel.parentName = self.annotatesResourceModel.parentName)->at(1) in
+		JavaResourceModel;
+
+helper context DESPIMIN!AnnAlgoResourceModel def: getPSMAlgoResourceModel : COREPSMIN!JavaAlgoResourceModel =
+	let JavaResourceModel : COREPSMIN!JavaAlgoResourceModel = COREPSMIN!JavaAlgoResourceModel.allInstances()->asSequence()->select(jRModel |
+		jRModel.parentName = self.annotatesAlgoResourceModel.parentName)->at(1) in
+		JavaResourceModel;
+
+helper def: getAnnPIMComponentProperty : Sequence(DESPIMIN!AnnPIMComponentProperty) =
+	let AllAnnPIMComponentProperties : DESPIMIN!AnnPIMComponentProperty = DESPIMIN!AnnPIMComponentProperty.allInstances()->asSequence() in
+		AllAnnPIMComponentProperties;
+
+helper context DESPIMIN!AnnPIMComponentProperty def: getPSMComponentProperty : COREPSMIN!PSMComponentProperty = 
+	let ParentPIMResourceModel : COREPIMIN!ResourceModel = COREPIMIN!ResourceModel.allInstances()->asSequence()->select(rModel | 
+		rModel.rModelHasProperty->includes(self.annotatesPIMComponentProperty))->at(1) in
+		let ParentPSMResourceModel : COREPSMIN!JavaResourceModel = COREPSMIN!JavaResourceModel.allInstances()->asSequence()->select(jRModel |
+			jRModel.parentName = ParentPIMResourceModel.parentName)->at(1) in
+			let PSMComponentProperty : COREPSMIN!PSMComponentProperty = COREPSMIN!PSMComponentProperty.allInstances()->asSequence()->select( PSMComponentProperty |
+				ParentPSMResourceModel.JavaRModelHasProperty->includes(PSMComponentProperty) and 
+				(self.annotatesPIMComponentProperty.name = PSMComponentProperty.name))->at(1) in
+					PSMComponentProperty;
+			
+helper def: getPIMBuilderPatterns : Sequence(DESPIMIN!BuilderPattern) =
+	let AllPIMBuilderPatterns : DESPIMIN!BuilderPattern = DESPIMIN!BuilderPattern.allInstances()->asSequence() in
+		AllPIMBuilderPatterns;
+
+helper def: getPIMBridgePattern : Sequence(DESPIMIN!BridgePattern) =
+	let AllPIMBridgePatterns : DESPIMIN!BridgePattern = DESPIMIN!BridgePattern.allInstances()->asSequence() in
+		AllPIMBridgePatterns;
+
+helper def: getDirector : DESPIMIN!Director = DESPIMIN!Director;
+
+helper def: getPIMConcreteBuilders : Sequence(DESPIMIN!ConcreteBuilder) =
+	let AllPIMConcreteBuilders : DESPIMIN!ConcreteBuilder = DESPIMIN!ConcreteBuilder.allInstances()->asSequence() in
+	AllPIMConcreteBuilders;
+
+--Memento Helpers
+
+helper def: getPIMMementoPattern : Sequence(DESPIMIN!MementoPattern) = 
+	let AllPIMMementoPatterns : DESPIMIN!MementoPattern = DESPIMIN!MementoPattern.allInstances() -> asSequence() in
+		AllPIMMementoPatterns;
+
+helper def: getPIMMementos : Sequence(DESPIMIN!PIMMemento) = 
+	let AllPIMMementos : DESPIMIN!PIMMemento = DESPIMIN!PIMMemento.allInstances() -> asSequence() in
+		AllPIMMementos;
+
+--ObserverPattern Helpers
+
+helper def: getPIMObserverPattern : Sequence(DESPIMIN!ObserverPattern) = 
+	let AllPIMObserverPatterns : DESPIMIN!ObserverPattern = DESPIMIN!ObserverPattern.allInstances() -> asSequence() in
+		AllPIMObserverPatterns;
+
+helper def: getPIMObservers : Sequence(DESPIMIN!Observer) =
+	let AllPIMObservers : DESPIMIN!Observer = DESPIMIN!Observer.allInstances() -> asSequence() in
+	 AllPIMObservers;
+
+helper def: getAnnCRUDActivityHandlers: Sequence(DESPIMIN!AnnCRUDActivityHandler) = 
+	let AllAnnCRUDActivityHandlers : DESPIMIN!AnnCRUDActivityHandler = DESPIMIN!AnnCRUDActivityHandler.allInstances() -> asSequence() in
+		AllAnnCRUDActivityHandlers;
+
+helper def: getObservableAnnCRUDActivityHandlers: Sequence(DESPIMIN!ObservableAnnCRUDActivityHandler) =
+	let AllObservableAnnCRUDActivityHandlers : DESPIMIN!ObservableAnnCRUDActivityHandler = DESPIMIN!ObservableAnnCRUDActivityHandler.allInstances() -> asSequence() in
+	AllObservableAnnCRUDActivityHandlers;
+
+helper context DESPIMIN!ObservableAnnCRUDActivityHandler def: getHTTPActivityHandler : COREPSMIN!HTTPActivityHandler =
+	let ParentPIMResourceModel : COREPIMIN!ResourceModel = self.referencesAnnResourceModel.annotatesResourceModel in 
+	let ParentPSMJavaResourceModel : COREPSMIN!JavaResourceModel = thisModule.getAnnResourceModel -> collect (b | b.getPSMResourceModel) -> select ( JavaResourceModel | JavaResourceModel.parentName = ParentPIMResourceModel.parentName)->at(1) in 
+	let ALLJavaResourceControllers : Sequence(COREPSMIN!JavaResourceController) = COREPSMIN!JavaResourceController.allInstances() -> asSequence() in
+	let JavaResourceController : COREPSMIN!JavaResourceController = ALLJavaResourceControllers -> select( JavaResourceController | JavaResourceController.parentName = ParentPSMJavaResourceModel.parentName) -> at(1) in
+	let AllJavaResourceControllerHTTPActivities : Sequence(COREPSMIN!HTTPActivity) = JavaResourceController.JavaRControllerHasHTTPActivity -> asSequence() in
+	let thisJavaResourceControllerManager : COREPSMIN!JavaResourceControllerManager = COREPSMIN!JavaResourceControllerManager.allInstances() -> select( a | a.parentName = ParentPSMJavaResourceModel.parentName) in 
+    let thisJavaReousrceControllerManagerHTTPActivities : Sequence(COREPSMIN!HTTPActivity) = thisJavaResourceControllerManager -> collect(a | a.JavaRCManagerHasHTTPActivity).at(1) in 
+    AllJavaResourceControllerHTTPActivities -> union( thisJavaReousrceControllerManagerHTTPActivities ) -> select( HTTPActivity | HTTPActivity.ActivityHTTPVerb = thisModule.convertCRUDtoHTTPVerb(self.extendsAnnCRUDActivityHandler.annotatesCRUDActivityHandler.crudVerb)).at(1).hasHTTPActivityHandler; 
+ -- GET POST FROM CREATE HELPER :D :D :D 
+--Rules
+
+helper def: convertCRUDtoHTTPVerb(CRUDVerb : COREPIMIN!CRUDVerb) : COREPSMIN!HTTPVerb =
+	if
+		CRUDVerb = #CREATE
+	then
+		#POST
+	else
+		if
+			CRUDVerb = #READ
+		then
+			#GET
+		else
+			if
+				CRUDVerb = #UPDATE
+			then
+				#PUT
+			else --else it is #DELETE
+				#DELETE
+			endif
+		endif
+	endif;
+
+rule DesignPatternsLayerPIMToPSM{
+	from
+		DesignPatternsLayerPIMModel : DESPIMIN!AnnotationModel
+	to
+		DesignPatternsLayerPSMModel : DESPSMOUT!AnnotationModel(
+			name <- DesignPatternsLayerPIMModel.name,
+			hasAnnotatedElement <- Sequence{thisModule.getAnnResourceModel -> collect(annResourceModel | thisModule.createAnnJavaResourceModel(annResourceModel)),
+											thisModule.getAnnAlgoResourceModel -> collect(annAlgoResourceModel | thisModule.createAnnJavaAlgoResourceModel(annAlgoResourceModel)),
+											thisModule.getAnnPIMComponentProperty -> collect(annPIMComponentProperty | thisModule.createAnnPSMComponentProperty(annPIMComponentProperty)),
+											thisModule.getObservableAnnCRUDActivityHandlers -> collect(ObservableAnnCRUDActivityHandler | thisModule.createAnnJavaHTTPActivityHandler(ObservableAnnCRUDActivityHandler))
+			},														
+				--kai ta upoloipa
+			hasAnnotation <- Sequence{thisModule.getPIMBuilderPatterns -> collect(DesignPattern | thisModule.createPSMBuilderPattern(DesignPattern)),
+									  thisModule.getPIMObserverPattern -> collect(DesignPattern | thisModule.createPSMObserverPattern(DesignPattern)),
+									  thisModule.getPIMBridgePattern -> collect(DesignPattern | thisModule.createPSMBridgePattern(DesignPattern)),
+	  							  	  thisModule.getPIMMementoPattern -> collect(DesignPattern | thisModule.createPSMMementoPattern(DesignPattern)),			  
+									  thisModule.getObservableAnnCRUDActivityHandlers -> collect( observableAnnCRUDActivityHanlder | thisModule.createJavaObservableAnnHTTPActivityHandler(observableAnnCRUDActivityHanlder))					  
+			}
+	)
+}
+
+unique lazy rule createAnnJavaResourceModel{
+	from
+		AnnResourceModel : DESPIMIN!AnnResourceModel
+	to
+		AnnJavaResourceModel : DESPSMOUT!AnnJavaResourceModel(
+			annotatesJavaResourceModel <- AnnResourceModel.getPSMResourceModel	
+		)
+}
+
+unique lazy rule createAnnJavaAlgoResourceModel{
+	from
+		AnnResourceModel : DESPIMIN!AnnAlgoResourceModel
+	to
+		AnnJavaResourceModel : DESPSMOUT!AnnJavaAlgoResourceModel(
+			annotatesJavaAlgoResourceModel <- AnnResourceModel.getPSMAlgoResourceModel	
+		)
+}
+
+
+unique lazy rule createAnnPSMComponentProperty{
+	from 
+		AnnPIMComponentProperty : DESPIMIN!AnnPIMComponentProperty
+	to
+		AnnPSMComponentProperty : DESPSMOUT!AnnPSMComponentProperty(
+			annotatesPSMComponentProperty <- AnnPIMComponentProperty.getPSMComponentProperty	
+		)
+}
+
+-- Bridge rules
+unique lazy rule createPSMBridgePattern{
+	from
+		PIMBridgePattern : DESPIMIN!BridgePattern
+	to
+		PSMBridgePattern : DESPSMOUT!JavaBridgePattern(
+			bMakeBridgePatternForExternalService <- PIMBridgePattern.bMakeBridgePatternForExternalService ,
+			bMakeBridgePatternForSearch <- PIMBridgePattern.bMakeBridgePatternForSearch ,
+			associatesAnnJavaAlgoResourceModel <- PIMBridgePattern.associatesAnnAlgoResourceModel -> collect(a | thisModule.createAnnJavaAlgoResourceModel(a))
+		)
+}
+-- Builder rules
+
+unique lazy rule createPSMBuilderPattern{
+	from
+		PIMBuilderPattern : DESPIMIN!BuilderPattern
+	to
+		PSMBuilderPattern : DESPSMOUT!JavaBuilderPattern(
+			associatesAnnJavaResourceModels <- PIMBuilderPattern.associatesAnnResourceModel -> collect(annResource | thisModule.createAnnJavaResourceModel(annResource)),
+			hasJavaDirector 			   <- thisModule.createJavaDirector(thisModule.getDirector) 
+		)
+}
+
+unique lazy rule createJavaDirector{
+	from
+		PIMDirector : DESPIMIN!Director
+	to
+		PSMDIRECTOR : DESPSMOUT!JavaDirector(
+			hasJavaBuilder <- Sequence{thisModule.getPIMConcreteBuilders -> collect(ConcreteBuilders | thisModule.createPSMConcreteBuilder(ConcreteBuilders))
+								   }		
+			)		
+}
+
+unique lazy rule createPSMConcreteBuilder{
+	from 
+		PIMConcreteBuilder : DESPIMIN!ConcreteBuilder
+	to
+		PSMConcreteBuilder : DESPSMOUT!JavaConcreteBuilder(
+			associatesAnnJavaResourceModel <- thisModule.createAnnJavaResourceModel(PIMConcreteBuilder.associatesAnnResourceModel),
+			buildsJavaRepresentation <- thisModule.createPSMRepresentation(PIMConcreteBuilder.buildsRepresentation)
+		)
+}
+
+lazy rule createPSMRepresentation{
+	from
+		PIMRepresentation : DESPIMIN!Representation
+	to
+		PSMRepresentation : DESPSMOUT!JavaRepresentation(
+			name <- PIMRepresentation.name,
+			resourceInstanceId <- PIMRepresentation.resourceInstanceId,
+			refersTo <- thisModule.createAnnJavaResourceModel(PIMRepresentation.refersTo),
+			has <- PIMRepresentation.has -> collect(annProperty | thisModule.createAnnPSMComponentProperty(annProperty))
+		)
+}
+
+-- rules of Memento Pattern
+unique lazy rule createPSMMementoPattern{
+	from
+		PIMMementoPattern : DESPIMIN!MementoPattern
+	to
+		PSMMementoPattern : DESPSMOUT!JavaMementoPattern(
+			hasJavaResourceModelMemento <- Sequence{ thisModule.getPIMMementos -> collect( memento | thisModule.createPSMMemento(memento))}
+		)
+}
+
+unique lazy rule createPSMMemento{
+	from
+		PIMMemento : DESPIMIN!PIMMemento
+	to
+		PSMMemento : DESPSMOUT!JavaResourceModelMemento(
+			mementoNum <- PIMMemento.mementoNum,
+			referencesAnnJavaResourceModel <- thisModule.createAnnJavaResourceModel(PIMMemento.referencesAnnResourceModel)
+		)
+}
+
+-- rules of Observer Pattern
+unique lazy rule createAnnJavaHTTPActivityHandler{
+	from 
+		ObservableAnnCRUDActivityHandler : DESPIMIN!ObservableAnnCRUDActivityHandler
+	to
+		AnnJavaHTTPActivityHandler : DESPSMOUT!AnnJavaHTTPActivityHandler(
+			annotatesHTTPActivityHandler <- ObservableAnnCRUDActivityHandler.getHTTPActivityHandler	
+		)
+}
+
+unique lazy rule createPSMObserverPattern{
+	from
+		PIMObserverPattern : DESPIMIN!ObserverPattern
+	to
+		PSMObserverPattern : DESPSMOUT!JavaObserverPattern(
+			hasJavaObserver <- PIMObserverPattern.hasObserver -> collect( observer | thisModule.createJavaObserver(observer))
+		)
+}
+
+unique lazy rule createJavaObserver{
+	from
+		PIMObserver : DESPIMIN!Observer
+	to 
+		JavaObserver : DESPSMOUT!JavaObserver(
+			name <- PIMObserver.name,
+			-- TODO: ta upoloipa
+			referencesAnnJavaResourceModel <- thisModule.createAnnJavaResourceModel(PIMObserver.referencesAnnResourceModel),
+			observes <- thisModule.createJavaObservableAnnHTTPActivityHandler(PIMObserver.observes)
+		)
+}
+
+unique lazy rule createJavaObservableAnnHTTPActivityHandler{
+	from
+		ObservableAnnCRUDActivityHanlder : DESPIMIN!ObservableAnnCRUDActivityHandler
+	to
+		JavaObservableAnnHTTPActivityHandler : DESPSMOUT!JavaObservableAnnHTTPActivityHandler(
+			isObservedBy <- ObservableAnnCRUDActivityHanlder.isObservedBy -> collect( observer | thisModule.createJavaObserver(observer)),
+			referencesAnnJavaResourceModel <- thisModule.createAnnJavaResourceModel(ObservableAnnCRUDActivityHanlder.referencesAnnResourceModel),
+			extendsAnnJavaHTTPActivityHandler <- thisModule.createAnnJavaHTTPActivityHandler(ObservableAnnCRUDActivityHanlder)
+		)
+}

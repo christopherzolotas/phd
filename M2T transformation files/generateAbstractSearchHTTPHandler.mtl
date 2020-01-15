@@ -1,0 +1,178 @@
+[comment encoding = UTF-8 /]
+[module generateAbstractSearchHTTPHandler('platform:/plugin/eu.scasefp7.eclipse.mde.m2m/Metamodels/AnnotationLayerStack.ecore', 'platform:/plugin/eu.scasefp7.eclipse.mde.m2m/Metamodels/DesignPatternsLayerPSMMetamodel.ecore', 'platform:/plugin/eu.scasefp7.eclipse.mde.m2m/Metamodels/AuthenticationPSMMetamodel.ecore', 'platform:/plugin/eu.scasefp7.eclipse.mde.m2m/Metamodels/PSMMetamodel.ecore', 'platform:/plugin/eu.scasefp7.eclipse.mde.m2m/Metamodels/SearchLayerPSMMetamodel.ecore')]
+
+
+[template public generateAbstractSearchHTTPHandler(anAnnotationStack : AnnotationStack, jAlgoResourceController : JavaAlgoResourceController)]
+
+[file (anAnnotationStack.hasCorePSM.name + '/src/main/java/eu/fp7/scase/' + anAnnotationStack.hasCorePSM.name.toLowerCase() + '/' + jAlgoResourceController.parentName + '/' + 'Abstract' +jAlgoResourceController.JavaAlgoRControllerHasHTTPActivity.ActivityHTTPVerb.toString().toLower().toUpperFirst()  + jAlgoResourceController.parentName + 'Handler.java', false, 'UTF-8')]
+/*
+ * ARISTOSTLE UNIVERSITY OF THESSALONIKI
+ * Copyright (C) 2015
+ * Aristotle University of Thessaloniki
+ * Department of Electrical & Computer Engineering
+ * Division of Electronics & Computer Engineering
+ * Intelligent Systems & Software Engineering Lab
+ *
+ * Project             : [anAnnotationStack.hasCorePSM.name/]
+ * WorkFile            : 
+ * Compiler            : 
+ * File Description    : 
+ * Document Description: 
+* Related Documents	   : 
+* Note				   : 
+* Programmer		   : RESTful MDE Engine created by Christoforos Zolotas / Design Patterns Layer Implementation created by Dontsios Dimitrios
+* Contact			   : christopherzolotas@issel.ee.auth.gr / dontsios@gmail.com
+*/
+
+
+package eu.fp7.scase.[anAnnotationStack.hasCorePSM.name.toLowerCase()/].[jAlgoResourceController.parentName/];
+
+import java.util.Iterator;
+import java.util.List;
+import java.util.ArrayList;
+
+import javax.ws.rs.core.UriInfo;
+[if (anAnnotationStack.bHasAuthenticationAnnotation)]
+[if (anAnnotationStack.hasGuestMode(jAlgoResourceController.parentName) = false)]
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Response;
+import com.sun.jersey.core.util.Base64;
+import eu.fp7.scase.[anAnnotationStack.hasCorePSM.name.toLowerCase()/].[anAnnotationStack.getAuthenticationPerformer().authenticationModelParentName/].[anAnnotationStack.getAuthenticationPerformer().authenticationModelName/];
+[/if]
+[/if]
+
+import eu.fp7.scase.[anAnnotationStack.hasCorePSM.name.toLowerCase()/].utilities.HypermediaLink;
+import eu.fp7.scase.[anAnnotationStack.hasCorePSM.name.toLowerCase()/].utilities.HibernateController;
+import eu.fp7.scase.[anAnnotationStack.hasCorePSM.name.toLowerCase()/].utilities.PersistenceUtil;
+[for (aSearchableResource : SearchableJavaResourceModel | jAlgoResourceController.getSearchableResources(anAnnotationStack))]
+import eu.fp7.scase.[anAnnotationStack.hasCorePSM.name.toLowerCase()/].[aSearchableResource.isSearchableJavaResourceModel.annotatesJavaResourceModel.parentName/].[aSearchableResource.isSearchableJavaResourceModel.annotatesJavaResourceModel.name/];
+[/for]
+
+import org.hibernate.search.jpa.FullTextEntityManager;
+import org.hibernate.search.jpa.Search;
+import org.hibernate.search.query.dsl.QueryBuilder;
+
+/* This class processes search requests for [jAlgoResourceController.parentName/] resource and creates the hypermedia links with the search results to be returned to the client*/
+public abstract class Abstract[jAlgoResourceController.JavaAlgoRControllerHasHTTPActivity.hasHTTPActivityHandler.name/]{
+
+    protected HibernateController oHibernateController;
+    protected UriInfo oApplicationUri; //Standard datatype that holds information on the URI info of this request
+    protected [jAlgoResourceController.hasAssociatedAlgoModel.name/] o[jAlgoResourceController.hasAssociatedAlgoModel.name/];
+	protected String searchKeyword;
+	protected final static String arrayInvalidSearchTerms['['/][']'/] = { "a", "an", "and", "are", "as", "at", "be", "but", "by", "for", "if", "in", "into", "is", "it", "no", "not", "of", "on", "or", "such", "that", "the", "their", "then", "there", "these", "they", "this", "to", "was", "will", "with"};
+	[if (anAnnotationStack.bHasAuthenticationAnnotation)]
+	[if (anAnnotationStack.hasGuestMode(jAlgoResourceController.parentName) = false)]
+	protected String authHeader;
+	protected [anAnnotationStack.getAuthenticationPerformer().authenticationModelName/] oAuthentication[anAnnotationStack.getAuthenticationPerformer().authenticationModelParentName.toUpperFirst()/];
+	[/if]
+	[/if]
+
+    public Abstract[jAlgoResourceController.JavaAlgoRControllerHasHTTPActivity.hasHTTPActivityHandler.name/]([if (anAnnotationStack.bHasAuthenticationAnnotation)][if (anAnnotationStack.hasGuestMode(jAlgoResourceController.parentName) = false)]String authHeader, [/if][/if]String searchKeyword, UriInfo oApplicationUri){
+        o[jAlgoResourceController.hasAssociatedAlgoModel.name/] = new [jAlgoResourceController.hasAssociatedAlgoModel.name/]();
+        this.oHibernateController = HibernateController.getHibernateControllerHandle();
+        this.oApplicationUri = oApplicationUri;
+		[if (anAnnotationStack.bHasAuthenticationAnnotation)]
+		[if (anAnnotationStack.hasGuestMode( jAlgoResourceController.parentName) = false)]
+		this.authHeader = authHeader;
+		this.oAuthentication[anAnnotationStack.getAuthenticationPerformer().authenticationModelParentName.toUpperFirst()/] = new [anAnnotationStack.getAuthenticationPerformer().authenticationModelName/](); 
+		[/if] 
+		[/if]
+		this.searchKeyword = searchKeyword;
+    }
+
+    abstract public [jAlgoResourceController.hasAssociatedAlgoModel.name/] [jAlgoResourceController.JavaAlgoRControllerHasHTTPActivity.hasHTTPActivityHandler.HandlerHTTPVerb.toString().toLower()/][jAlgoResourceController.parentName.toLower()/]();
+
+	[if (anAnnotationStack.bHasAuthenticationAnnotation)]
+	[if (anAnnotationStack.hasGuestMode(jAlgoResourceController.parentName) = false)]
+	/* This function performs the decoding of the authentication header */
+    abstract public void decodeAuthorizationHeader();
+	[/if]
+	[/if]
+
+    /* This function produces hypermedia links to be sent to the client that include all the search results, so as it will be able to forward the application state in a valid way.*/
+    abstract public [jAlgoResourceController.hasAssociatedAlgoModel.name/] searchDatabase();
+
+	[for (aSearchableResource : SearchableJavaResourceModel | jAlgoResourceController.getSearchableResources(anAnnotationStack))]
+	/* This functions produces hypermedia links to be sent to the client that include search results of resource [aSearchableResource.isSearchableJavaResourceModel.annotatesJavaResourceModel.parentName.toUpperFirst()/] search requests
+	 */
+    abstract public void add[aSearchableResource.isSearchableJavaResourceModel.annotatesJavaResourceModel.parentName.toUpperFirst()/]HypermediaLinks();
+	[/for]
+
+    abstract public void validateSearchString();
+    
+    abstract public boolean isValidSearchKeywordToken(String strSearchKeywordTerm);
+}
+[/file]
+[/template]
+
+[query private hasBothModeAuthentication(anAnnotationStack : AnnotationStack, resourceName : String) : Boolean =
+	getAuthenticationLayerBothModeAnnotations(anAnnotationStack)->exists(bothModeAnnotation | bothModeAnnotation.HTTPActivityHandlerHasAuthenticationMode->exists(annHTTPActivityHandler | annHTTPActivityHandler.annotatesHTTPActivityHandler.name.toLower() = annHTTPActivityHandler.annotatesHTTPActivityHandler.HandlerHTTPVerb.toString().toLower() + resourceName.toLower() + 'Handler'.toLower()))
+/]
+
+[query private getAuthenticationLayerBothModeAnnotations(anAnnotationStack : AnnotationStack) : Sequence(BothMode) =
+	anAnnotationStack.hasAuthenticationLayer.hasAnnotation->select( annotation | annotation.oclIsTypeOf(BothMode))->asSequence()
+/]
+
+[query private hasAuthenticationOnlyMode(anAnnotationStack : AnnotationStack, resourceName : String) : Boolean =
+	getAuthenticationLayerAuthenticationOnlyModeAnnotations(anAnnotationStack)->exists(authenticationOnlyMode | authenticationOnlyMode.HTTPActivityHandlerHasAuthenticationMode->exists(annHTTPActivityHandler | annHTTPActivityHandler.annotatesHTTPActivityHandler.name.toLower() = annHTTPActivityHandler.annotatesHTTPActivityHandler.HandlerHTTPVerb.toString().toLower() + resourceName.toLower() + 'Handler'.toLower()))
+/]
+
+[query private getAuthenticationLayerAuthenticationOnlyModeAnnotations(anAnnotationStack : AnnotationStack) : Sequence(AuthenticationOnlyMode) =
+	anAnnotationStack.hasAuthenticationLayer.hasAnnotation->select( annotation | annotation.oclIsTypeOf(AuthenticationOnlyMode))->asSequence()
+/]
+
+[query private hasGuestMode(anAnnotationStack : AnnotationStack, resourceName : String) : Boolean =
+	getAuthenticationLayerGuestModeAnnotations(anAnnotationStack)->exists(guestMode | guestMode.HTTPActivityHandlerHasAuthenticationMode->exists(annHTTPActivityHandler | annHTTPActivityHandler.annotatesHTTPActivityHandler.name.toLower() = annHTTPActivityHandler.annotatesHTTPActivityHandler.HandlerHTTPVerb.toString().toLower() + resourceName.toLower() + 'Handler'.toLower()))
+/]
+
+[query private getAuthenticationLayerGuestModeAnnotations(anAnnotationStack : AnnotationStack) : Sequence(GuestMode) =
+	anAnnotationStack.hasAuthenticationLayer.hasAnnotation->select( annotation | annotation.oclIsTypeOf(GuestMode))->asSequence()
+/]
+
+[query private getAuthenticationPerformer(anAnnotationStack : AnnotationStack) : AuthenticationPerformer =
+	anAnnotationStack.hasAuthenticationLayer.hasAnnotation->select(annotation | annotation.oclIsTypeOf(AuthenticationPerformer))->at(1)
+/]
+
+[query private getPasswordToken(anAnnotationStack : AnnotationStack) : Password =
+	anAnnotationStack.getAuthenticationPerformer().hasAuthenticationToken->select(authenticationToken | authenticationToken.oclIsTypeOf(Password))->at(1)
+/]
+
+[query private getUsernameToken(anAnnotationStack : AnnotationStack) : AuthenticationToken =
+	anAnnotationStack.getAuthenticationPerformer().hasAuthenticationToken->select(authenticationToken | authenticationToken.oclIsTypeOf(Password) = false)->at(1)
+/]
+
+[query private getSearchableResources(jAlgoRC : JavaAlgoResourceController, anAnnotationStack : AnnotationStack) : Sequence(SearchableJavaResourceModel) =
+   jAlgoRC.getSearchHTTPHandler(anAnnotationStack).searchesJavaResourceModel->asSequence()
+/]
+
+[query private getSearchHTTPHandler(jAlgoRC : JavaAlgoResourceController, anAnnotationStack : AnnotationStack) : SearchHTTPHandler =
+	getSearchHTTPHandlerAnnotations(anAnnotationStack)->select(SearchHTTPHandlerAnnotation | jAlgoRC.JavaAlgoRControllerHasHTTPActivity.hasHTTPActivityHandler->includes(SearchHTTPHandlerAnnotation.isHTTPActivityHandler.annotatesHTTPActivityHandler))->at(1)
+/]
+
+[query private getSearchHTTPHandlerAnnotations(anAnnotationStack : AnnotationStack) : Sequence(SearchHTTPHandler) =
+	anAnnotationStack.hasSearchLayer.hasAnnotation->select( annotation | annotation.oclIsTypeOf(SearchHTTPHandler))->asSequence()
+/]
+
+[query private hasSingleParent(aSearchableResource : SearchableJavaResourceModel, anAnnotationStack : AnnotationStack) : Boolean =
+	anAnnotationStack.hasCorePSM.hasJavaRModel->select(jPRModel | jPRModel.hasRelatedJavaRMManager.hasRelatedJavaRModel->includes(aSearchableResource.isSearchableJavaResourceModel.annotatesJavaResourceModel))->size() = 1
+/]
+
+[query private getUniqueParentName(aSearchableResource : SearchableJavaResourceModel, anAnnotationStack : AnnotationStack) : String =
+	anAnnotationStack.hasCorePSM.hasJavaRModel->select(jPRModel | jPRModel.hasRelatedJavaRMManager.hasRelatedJavaRModel->includes(aSearchableResource.isSearchableJavaResourceModel.annotatesJavaResourceModel))->at(1).parentName
+/]
+
+[query private getResourceName(aSearchableResource : SearchableJavaResourceModel) : String =
+	aSearchableResource.isSearchableJavaResourceModel.annotatesJavaResourceModel.parentName
+/]
+
+[query private getResourceModelName(aSearchableResource : SearchableJavaResourceModel) : String =
+	aSearchableResource.isSearchableJavaResourceModel.annotatesJavaResourceModel.name
+/]
+
+[query private getNumberOfParents(aSearchableResource : SearchableJavaResourceModel, anAnnotationStack : AnnotationStack) : Integer =
+	anAnnotationStack.hasCorePSM.hasJavaRModel->select(jPRModel | jPRModel.hasRelatedJavaRMManager.hasRelatedJavaRModel->includes(aSearchableResource.isSearchableJavaResourceModel.annotatesJavaResourceModel))->size()
+/]
+
+[query private getMultipleParents(aSearchableResource : SearchableJavaResourceModel, anAnnotationStack : AnnotationStack) : Sequence(JavaResourceModel) =
+	anAnnotationStack.hasCorePSM.hasJavaRModel->select(jPRModel | jPRModel.hasRelatedJavaRMManager.hasRelatedJavaRModel->includes(aSearchableResource.isSearchableJavaResourceModel.annotatesJavaResourceModel))->asSequence()
+/]
