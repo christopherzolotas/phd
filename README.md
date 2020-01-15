@@ -9,6 +9,6 @@ Online material for doctoral dissertation of Christoforos Zolotas titled "Design
 
 *M2M transformation files*: All the dissertation's Model-To-Model transformation files using the Atlas Transformation Language (ATL)
 
-*M2T transformation files:* All the dissertation's Model-To-Text transformation files using the Acceleop template language.
+*M2T transformation files:* All the dissertation's Model-To-Text transformation files using the Acceleo template language.
 
 For any information please contact me at: christopherzolotas@gmail.com
